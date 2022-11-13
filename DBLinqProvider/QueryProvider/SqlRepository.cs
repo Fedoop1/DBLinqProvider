@@ -1,9 +1,10 @@
 ﻿using System.Data.SqlClient;
 using System.Reflection;
+using DBLinqProvider.Models;
 using DBLinqProvider.Services;
 
 namespace DBLinqProvider.QueryProvider;
-public class SqlRepository<TEntity>
+public class SqlRepository<TEntity> : IRepository<TEntity>
 {
     private readonly int fieldsCount = typeof(TEntity).GetFields(BindingFlags.DeclaredOnly).Count();
     private readonly string connectionString;
@@ -32,9 +33,10 @@ public class SqlRepository<TEntity>
             for (var colIndex = 0; colIndex < reader.FieldCount; colIndex++)
             {
                 entityFields[reader.GetName(colIndex)] = reader.GetValue(colIndex);
-
-                result.Add(this.entityActivator.CreateInstance(entityFields));
             }
+
+            result.Add(this.entityActivator.CreateInstance(entityFields));
+
         } while (await reader.ReadAsync());
 
         return result;

@@ -4,21 +4,27 @@ using System.Text;
 using DBLinqProvider.Attributes;
 
 namespace DBLinqProvider.QueryProvider;
+
 public class ExpressionToSqlQueryConverter : ExpressionVisitor
 {
-    private readonly StringBuilder sb = new();
+    private readonly string tableName;
 
-    public string Convert<TEntity>(Expression expression)
+    private SqlQueryBuilder queryBuilder;
+    private StringBuilder stringBuilder = new ();
+
+    public ExpressionToSqlQueryConverter(string tableName)
     {
-        var tableAttribute = (TableAttribute)typeof(TEntity).GetCustomAttribute(typeof(TableAttribute)) ?? 
-                        throw new Exception($"{typeof(TEntity).Name} doesn't contain {nameof(TableAttribute)} attribute");
+        this.tableName = tableName;
+    }
 
-        this.sb.Clear();
-        this.sb.Append($"SELECT * FROM {tableAttribute.Name}");
+    public string Convert(Expression expression)
+    {
+        this.queryBuilder = SqlQueryBuilder.Create(this.tableName);
+        this.stringBuilder.Clear();
 
         this.Visit(expression);
 
-        return sb.ToString();
+        return queryBuilder.Build();
     }
 
     protected override Expression VisitMethodCall(MethodCallExpression node)
@@ -28,59 +34,58 @@ public class ExpressionToSqlQueryConverter : ExpressionVisitor
         switch (node.Method.Name)
         {
             case "Select":
-                sb.Replace("*", string.Empty);
+                stringBuilder.Clear();
+                base.Visit(node);
+                queryBuilder.AddSelector(stringBuilder.ToString());
                 break;
             case "Where":
-                sb.Append(" WHERE ");
+                stringBuilder.Clear();
+                base.Visit(node.Arguments[1]);
+                queryBuilder.AddCondition(stringBuilder.ToString());
                 break;
             default: throw new NotSupportedException(node.Method.Name + "doesn't supported");
         }
 
-        return base.VisitMethodCall(node);
+        return node;
     }
 
     protected override Expression VisitMember(MemberExpression node)
     {
-        sb.Append(node.Expression!.Type.Name + ".");
-        sb.Append(node.Member.Name);
+        stringBuilder.Append(this.tableName + ".");
+        stringBuilder.Append(node.Member.Name);
 
         return base.VisitMember(node);
     }
 
     protected override Expression VisitConstant(ConstantExpression node)
     {
-        sb.Append(node.Value);
+        stringBuilder.Append(node.Value);
 
         return base.VisitConstant(node);
     }
 
     protected override Expression VisitBinary(BinaryExpression node)
     {
-        if (!sb.ToString().Contains("WHERE"))
-        {
-            sb.Append(" WHERE ");
-        }
-
         switch (node.NodeType)
         {
             case ExpressionType.Equal:
                 Visit(node.Left);
-                sb.Append(" = ");
+                stringBuilder.Append(" = ");
                 Visit(node.Right);
                 break;
             case ExpressionType.GreaterThan:
                 Visit(node.Left);
-                sb.Append(" > ");
+                stringBuilder.Append(" > ");
                 Visit(node.Right);
                 break;
             case ExpressionType.LessThan:
                 Visit(node.Left);
-                sb.Append(" < ");
+                stringBuilder.Append(" < ");
                 Visit(node.Right);
                 break;
             case ExpressionType.AndAlso:
                 Visit(node.Left);
-                sb.Append(" AND ");
+                stringBuilder.Append(" AND ");
                 Visit(node.Right);
                 break;
             default: throw new NotSupportedException($"Operation '{node.NodeType}' isn't supported");

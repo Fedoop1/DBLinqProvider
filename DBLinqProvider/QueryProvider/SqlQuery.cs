@@ -14,8 +14,7 @@ public class SqlQuery<TEntity> : IQueryable<TEntity>
     public IEnumerator<TEntity> GetEnumerator() =>
         Provider.Execute<IEnumerable<TEntity>>(Expression).GetEnumerator();
 
-    IEnumerator IEnumerable.GetEnumerator() =>
-        ((IEnumerable)Provider.Execute(Expression)).GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => Provider.Execute<IEnumerable>(Expression).GetEnumerator();
 
     public Type ElementType { get; }
     public Expression Expression { get; }
