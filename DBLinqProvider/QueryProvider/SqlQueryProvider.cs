@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Collections;
+using System.Linq.Expressions;
 using DBLinqProvider.Models;
 
 namespace DBLinqProvider.QueryProvider;
@@ -18,12 +19,12 @@ public class SqlQueryProvider<TEntity> : IQueryProvider
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression) =>
         new SqlQuery<TElement>(expression, this);
 
-    public object Execute(Expression expression) => Execute<IEnumerable<TEntity>>(expression);
+    public object Execute(Expression expression) => Execute<IEnumerable>(expression);
 
     public TResult Execute<TResult>(Expression expression)
     {
         var query = expressionConverter.Convert(expression);
 
-        return (TResult)repository.FindAsync(query).Result;
+        return (TResult)repository.ExecuteQueryAsync(query).Result;
     }
 }

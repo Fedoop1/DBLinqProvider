@@ -1,6 +1,8 @@
-﻿namespace DBLinqProvider.Models;
+﻿using System.Collections;
+
+namespace DBLinqProvider.Models;
 
 public interface IRepository<TEntity>
 {
-    public Task<IEnumerable<TEntity>> FindAsync(string query);
+    public Task<IEnumerable> ExecuteQueryAsync(string query);
 }

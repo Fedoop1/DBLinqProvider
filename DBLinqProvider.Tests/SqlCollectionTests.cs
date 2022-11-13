@@ -1,7 +1,6 @@
 ﻿using System.Data.SqlClient;
 using DBLinqProvider.Models;
 using DBLinqProvider.QueryProvider;
-using DBLinqProvider.Services;
 
 namespace DBLinqProvider.Tests;
 
@@ -49,7 +48,7 @@ internal class SqlCollectionTests
             throw;
         }
 
-        this.productsCollection = new SqlCollection<Product>(ConnectionString, new ProductActivator(), tableName);
+        this.productsCollection = new SqlCollection<Product>(ConnectionString, tableName);
 
         transaction.Commit();
         connection.Close();
@@ -88,10 +87,24 @@ internal class SqlCollectionTests
         var expectedResult = this.productsSource.Where(p => p.Price > 3);
         var actualResult = this.productsCollection.Where(p => p.Price > 3);
 
-        var array = this.productsCollection.ToArray();
-
-        CollectionAssert.AreEquivalent(expectedResult, actualResult);
+        CollectionAssert.AreEqual(expectedResult, actualResult);
     }
 
-    // TODO: Add Select tests
+    [Test]
+    public void SqlCollection_SelectTest()
+    {
+        var expectedResult = this.productsSource.Select(p => p.Price);
+        var actualResult = this.productsCollection.Select(p => p.Price);
+
+        CollectionAssert.AreEqual(expectedResult, actualResult);
+    }
+
+    [Test]
+    public void SqlCollection_ComplexQueryTest()
+    {
+        var expectedResult = this.productsSource.Where(p => p.Name == "Product1").Select(p => p.ProductId);
+        var actualResult = this.productsCollection.Where(p => p.Name == "Product1").Select(p => p.ProductId);
+
+        CollectionAssert.AreEqual(expectedResult, actualResult);
+    }
 }

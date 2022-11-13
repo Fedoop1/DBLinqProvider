@@ -2,7 +2,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using DBLinqProvider.Attributes;
-using DBLinqProvider.Services;
 
 namespace DBLinqProvider.QueryProvider;
 
@@ -11,11 +10,11 @@ public class SqlCollection<TEntity> : IQueryable<TEntity>
     private readonly SqlQueryProvider<TEntity> queryProvider;
     private readonly Expression expression;
 
-    public SqlCollection(string connectionString, IEntityActivator<TEntity> activator, string? tableName = null)
+    public SqlCollection(string connectionString, string? tableName = null)
     {
         this.expression = Expression.Constant(this);
 
-        var repository = new SqlRepository<TEntity>(connectionString, activator);
+        var repository = new SqlRepository<TEntity>(connectionString);
 
         tableName ??= ((TableAttribute) typeof(TEntity).GetCustomAttribute(typeof(TableAttribute)))?.Name ??
                                   throw new Exception(

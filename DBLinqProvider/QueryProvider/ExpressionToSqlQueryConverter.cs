@@ -31,11 +31,16 @@ public class ExpressionToSqlQueryConverter : ExpressionVisitor
     {
         if (node.Method.DeclaringType != typeof(Queryable)) return base.VisitMethodCall(node);
 
+        if (node.Arguments[0] is MethodCallExpression methodCallExpression)
+        {
+            VisitMethodCall(methodCallExpression);
+        }
+
         switch (node.Method.Name)
         {
             case "Select":
                 stringBuilder.Clear();
-                base.Visit(node);
+                base.Visit(node.Arguments[1]);
                 queryBuilder.AddSelector(stringBuilder.ToString());
                 break;
             case "Where":
@@ -59,7 +64,9 @@ public class ExpressionToSqlQueryConverter : ExpressionVisitor
 
     protected override Expression VisitConstant(ConstantExpression node)
     {
-        stringBuilder.Append(node.Value);
+        var constValue = node.Value?.GetType() == typeof(string) ? $"'{node.Value}'" : node.Value;
+
+        stringBuilder.Append(constValue);
 
         return base.VisitConstant(node);
     }
@@ -69,6 +76,12 @@ public class ExpressionToSqlQueryConverter : ExpressionVisitor
         switch (node.NodeType)
         {
             case ExpressionType.Equal:
+                if (node.Left.NodeType != ExpressionType.MemberAccess)
+                    throw new NotSupportedException($"Left operand should be property or field: {node.NodeType}");
+
+                if (node.Right.NodeType != ExpressionType.Constant)
+                    throw new NotSupportedException($"Right operand should be constant: {node.NodeType}");
+
                 Visit(node.Left);
                 stringBuilder.Append(" = ");
                 Visit(node.Right);
